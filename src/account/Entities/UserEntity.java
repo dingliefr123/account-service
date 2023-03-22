@@ -32,12 +32,12 @@ public class UserEntity {
   @Column(name = "password")
   private String password;
 
-  public static UserEntity fromSignUpDTO(SignUpDTO signUpDTO) {
+  public static UserEntity fromSignUpDTO(SignUpDTO signUpDTO, String hashedPwd) {
     return UserEntity.builder()
             .name(signUpDTO.getName())
             .lastname(signUpDTO.getLastname())
             .email(signUpDTO.getEmail())
-            .password(signUpDTO.getPassword())
+            .password(hashedPwd)
             .build();
   }
 }

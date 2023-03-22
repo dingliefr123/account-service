@@ -6,11 +6,15 @@ import account.Exception.UnauthorizedException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.util.Optional;
 
 @ControllerAdvice
 public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
@@ -47,7 +51,16 @@ public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
           WebRequest request) {
     var path = request.getDescription(false)
               .replace("uri=", "");
-    var body = new StandardError(status, ex.getMessage(), path, "Bad Request");
+    BindingResult bindingResult = ex.getBindingResult();
+    Optional<String> message = Optional.empty();
+    if (bindingResult.hasFieldErrors("new_password")) {
+      message = Optional.ofNullable(
+              bindingResult.getFieldError("new_password").getDefaultMessage());
+    } else if (bindingResult.hasFieldErrors("password")) {
+      message = Optional.ofNullable(
+              bindingResult.getFieldError("new_password").getDefaultMessage());
+    }
+    var body = new StandardError(status, message.orElse(ex.getMessage()), path, "Bad Request");
     return new ResponseEntity<>(body, headers, status);
   }
 
