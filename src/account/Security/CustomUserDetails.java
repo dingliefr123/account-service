@@ -1,26 +1,25 @@
 package account.Security;
 
-import account.DTO.SignUpDTO;
 import account.DTO.SignUpResponse;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
   private final String username;
   private final String password;
-  private SignUpResponse dtoWithId;
+  private final SignUpResponse dtoWithId;
   private final List<GrantedAuthority> rolesAndAuthorities;
 
   public CustomUserDetails(User user, SignUpResponse dtoWithId) {
     username = user.getUsername();
     password = user.getPassword();
     this.dtoWithId = dtoWithId;
-    rolesAndAuthorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+    rolesAndAuthorities = new ArrayList<>(user.getAuthorities());
   }
 
   @Override

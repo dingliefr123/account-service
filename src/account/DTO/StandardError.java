@@ -1,6 +1,7 @@
 package account.DTO;
 
 
+import account.Util.AuthUtil;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -21,5 +22,12 @@ public class StandardError {
     this.message = message;
     this.path = path;
     this.error = error;
+  }
+
+  public StandardError(HttpStatus status, String message, String error) {
+    this.status = status.value();
+    this.message = message;
+    this.error = error;
+    this.path = AuthUtil.GetCurrentUrl();
   }
 }
