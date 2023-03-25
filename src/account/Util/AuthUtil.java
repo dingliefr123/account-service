@@ -6,6 +6,8 @@ import account.Security.CustomUserDetails;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Objects;
 import java.util.Set;
@@ -45,5 +47,13 @@ public class AuthUtil {
     } catch(Exception e) {
       throw new BadRequestException("Unable to find user info");
     }
+  }
+
+  public static String GetCurrentUrl() {
+    String url = ((ServletRequestAttributes) RequestContextHolder
+            .currentRequestAttributes()).getRequest().getRequestURI();
+    int idx = url.indexOf("/api");
+    if (idx < 0) return "";
+    return url.substring(idx);
   }
 }

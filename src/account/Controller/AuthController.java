@@ -5,6 +5,7 @@ import account.DTO.SignUpResponse;
 import account.DTO.UpdatePasswordDTO;
 import account.DTO.UpdatePasswordResponse;
 import account.Service.UserService;
+import lombok.extern.java.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +16,8 @@ import javax.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth/")
+@Log
 public class AuthController {
-
-  private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
 
   @Autowired
   private UserService userService;
@@ -25,18 +25,18 @@ public class AuthController {
   @PostMapping("signup")
   @ResponseStatus(HttpStatus.OK)
   SignUpResponse signup(@Valid @RequestBody SignUpDTO signUpDTO) {
-    logger.info("signup starts");
+    log.info("signup starts");
     SignUpResponse signUpResponse = userService.saveUser(signUpDTO);
-    logger.info("signup closes id: " + signUpResponse.getId());
+    log.info("signup closes id: " + signUpResponse.getId());
     return signUpResponse;
   }
 
   @PostMapping("changepass")
   UpdatePasswordResponse changePass(@Valid @RequestBody UpdatePasswordDTO updateDTO) {
-    logger.info("changePass starts");
+    log.info("changePass starts");
     SignUpResponse signUpResponse =
             userService.changePassword(updateDTO.getNew_password());
-    logger.info("changePass closes");
+    log.info("changePass closes");
     return new UpdatePasswordResponse(signUpResponse.getEmail().toLowerCase());
   }
 

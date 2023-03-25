@@ -1,6 +1,6 @@
 package account.Security;
 
-import account.Exception.UnauthorizedException;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.web.access.AccessDeniedHandler;
 
@@ -14,6 +14,10 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
   public void handle(HttpServletRequest request,
                      HttpServletResponse response,
                      AccessDeniedException exc) {
-    throw new UnauthorizedException("");
+    try {
+      response.sendError(HttpStatus.FORBIDDEN.value(), "Access Denied!");
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }
