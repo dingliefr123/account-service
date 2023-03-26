@@ -24,7 +24,6 @@ public class AuthUtil {
       throw new BadRequestException("The password is in the hacker's database!");
   }
 
-
   public static SignUpResponse checkAuthAndGetUserInfo() {
     return getUserDetails().getDtoWithId();
   }
@@ -34,19 +33,16 @@ public class AuthUtil {
       throw new BadRequestException("The passwords must be different!");
   }
 
+  public static String GetCurrentAuthName() {
+    return getUserDetails().getUsername();
+  }
 
   private static CustomUserDetails getUserDetails() {
-    try {
       Authentication auth =
               SecurityContextHolder.getContext().getAuthentication();
       CustomUserDetails userDetails = (CustomUserDetails) auth.getPrincipal();
       var dtoWithId = userDetails.getDtoWithId();
-      if (Objects.isNull(dtoWithId.getId()))
-        throw new Exception();
       return userDetails;
-    } catch(Exception e) {
-      throw new BadRequestException("Unable to find user info");
-    }
   }
 
   public static String GetCurrentUrl() {

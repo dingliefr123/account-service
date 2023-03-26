@@ -13,7 +13,6 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<UserEntity, Long> {
   Optional<UserEntity> findTopDistinctByEmailIgnoreCase(String email);
 
-  // 更改语句
   @Modifying
   @Transactional
   @Query(
@@ -21,4 +20,28 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
           nativeQuery = true
   )
   int updateUserPwdByEmail(String password, String email);
+
+  @Modifying
+  @Transactional
+  @Query(
+          value = "UPDATE user SET locked = true WHERE UPPER(email) = UPPER(?1)",
+          nativeQuery = true
+  )
+  int lockUserByEmail(String email);
+
+  @Modifying
+  @Transactional
+  @Query(
+          value = "UPDATE user SET wrong_input_cnt = 0, locked = false  WHERE UPPER(email) = UPPER(?1)",
+          nativeQuery = true
+  )
+  int clearWrongCntByAndUlockEmail(String email);
+
+  @Modifying
+  @Transactional
+  @Query(
+          value = "UPDATE user SET wrong_input_cnt = wrong_input_cnt + 1 WHERE UPPER(email) = UPPER(?1)",
+          nativeQuery = true
+  )
+  int updateWrongCntByEmail(String email);
 }

@@ -1,28 +1,21 @@
 package account.Service;
 
-import account.Controller.AdminController;
-import account.DTO.PutRoleDTO;
 import account.DTO.SignUpDTO;
 import account.DTO.SignUpResponse;
-import account.DTO.SingleUserWithRoleResponse;
-import account.Entities.SalaryEntity;
 import account.Entities.UserEntity;
 import account.Entities.UserRoleEntity;
 import account.Exception.BadRequestException;
-import account.Exception.CustomForbiddenException;
 import account.Exception.UserNotFoundException;
 import account.Repository.UserRepository;
+import account.Security.CustomUserDetails;
 import account.Security.Role;
 import account.Util.AuthUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 
 @Service
@@ -30,6 +23,9 @@ public class UserService {
 
   @Autowired
   private UserRepository userRepository;
+
+  @Autowired
+  private EventService eventService;
 
   @Autowired
   PasswordEncoder passwordEncoder;
@@ -46,6 +42,8 @@ public class UserService {
     var userEntity = UserEntity.fromSignUpDTO(signUpDTO, hashed);
     setRoleEntity(userEntity);
     userRepository.save(userEntity);
+    // @TODO CREATE_USER
+    eventService.addCreateUserEvent(signUpDTO.getEmail());
     return SignUpResponse.fromEntity(userEntity);
   }
 
@@ -60,6 +58,8 @@ public class UserService {
             .updateUserPwdByEmail(newHashedPwd, email);
     if (affectedCnt < 1)
       throw new BadRequestException("");
+    // @TODO CHANGE_PASSWORD
+    eventService.addChangePasswordEvent(email, email);
     return userInfo;
   }
 
@@ -78,7 +78,8 @@ public class UserService {
             .orElseThrow(() -> new UserNotFoundException("User not found!"));
     if (userEntity.IsADMIN())
       throw new BadRequestException("Can't remove ADMINISTRATOR role!");
-
+    // @TODO DELETE_USER
+    eventService.addDeleteUserEvent(AuthUtil.GetCurrentAuthName(), email);
     userRepository.delete(userEntity);
   }
 
@@ -90,6 +91,41 @@ public class UserService {
 
   public List<UserEntity> getAllUsr() {
     return this.userRepository.findAll();
+  }
+
+  public void unlockAndClearWrongCnt(String object) {
+    userRepository.clearWrongCntByAndUlockEmail(object);
+  }
+
+  public void unlockAndClearWrongCntAndSaveEvent(String object) {
+    userRepository.clearWrongCntByAndUlockEmail(object);
+    // @TODO UNLOCK_USER
+    eventService.addUnLockEvent(AuthUtil.GetCurrentAuthName(), object);
+  }
+
+  public void updateWrongCntByEmailAndSaveEvent(String subject) {
+    // @TODO LOGIN_FAILED
+    eventService.addLoginFailedEvent(subject);
+
+    Optional<UserEntity> optional =
+            userRepository.findTopDistinctByEmailIgnoreCase(subject);
+    if (optional.isEmpty()) return;
+    UserEntity userEntity = optional.get();
+    if (CustomUserDetails.IsAccountNonLocked(userEntity))
+      userRepository.updateWrongCntByEmail(subject);
+    if (CustomUserDetails.IsBrutal(userEntity)) {
+      // @TODO BRUTAL_FORCE
+      eventService.addBrutalForceEvent(subject);
+      lockUser(subject, subject);
+    }
+  }
+
+  public void lockUser(String subject, String object) {
+    if (getUser(object).IsADMIN())
+      throw new BadRequestException("Can't lock the ADMINISTRATOR!");
+    userRepository.lockUserByEmail(object);
+    // @TODO LOCK_USER
+    eventService.addLockEvent(subject, object);
   }
 
   private void setRoleEntity(UserEntity userEntity) {

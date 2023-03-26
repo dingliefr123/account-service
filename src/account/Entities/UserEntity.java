@@ -37,6 +37,12 @@ public class UserEntity {
   @Column(name = "password")
   private String password;
 
+  @Column(name = "locked")
+  private boolean locked = false;
+
+  @Column(name = "wrong_input_cnt")
+  private int wrongInputCnt = 0;
+
   @OneToMany(fetch = FetchType.EAGER, cascade = { CascadeType.MERGE, CascadeType.PERSIST })
   @JoinColumn(name = "user_id", foreignKey = @ForeignKey(ConstraintMode.NO_CONSTRAINT))
   private List<UserRoleEntity> userRoles = new ArrayList<>();

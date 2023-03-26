@@ -30,13 +30,13 @@ public class EmplController {
   @GetMapping("/payment")
   Object getPayment(
           @RequestParam(required = false) String period) {
-    log.info("/payment entry " + period);
+    // log.info("/payment entry " + period);
     boolean querySingle = !StringUtils.isEmpty(period);
     if (querySingle && !period.matches("(0[1-9]|1[012])-20([01]\\d|2[012])"))
       throw new BadRequestException("");
     var salaryListOrItem =
             salaryService.findSalariesByEmail(period);
-    log.info("/payment close id:" + salaryListOrItem);
+    // log.info("/payment close id:" + salaryListOrItem);
     return salaryListOrItem;
   }
 

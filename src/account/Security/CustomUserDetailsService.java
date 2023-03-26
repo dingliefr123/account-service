@@ -4,7 +4,9 @@ import account.DTO.SignUpDTO;
 import account.DTO.SignUpResponse;
 import account.Entities.UserEntity;
 import account.Entities.UserRoleEntity;
+import account.Exception.UnauthorizedException;
 import account.Repository.UserRepository;
+import lombok.extern.java.Log;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,12 +21,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@Log
 public class CustomUserDetailsService implements UserDetailsService {
   @Autowired
   UserRepository userRepo;
 
   @Override
-  public UserDetails loadUserByUsername(String userEmail) throws UsernameNotFoundException {
+  public UserDetails loadUserByUsername(String userEmail) {
     Optional<UserEntity> optional =
             userRepo.findTopDistinctByEmailIgnoreCase(userEmail);
 
@@ -32,6 +35,9 @@ public class CustomUserDetailsService implements UserDetailsService {
       throw new UsernameNotFoundException("Not found: " + userEmail);
     }
     var userEntity = optional.get();
+    if (userEntity.isLocked()) {
+      throw new UnauthorizedException("User account is locked");
+    }
     List<GrantedAuthority> authorities = userEntity
             .getUserRoles()
             .stream()

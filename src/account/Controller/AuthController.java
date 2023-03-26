@@ -25,18 +25,18 @@ public class AuthController {
   @PostMapping("signup")
   @ResponseStatus(HttpStatus.OK)
   SignUpResponse signup(@Valid @RequestBody SignUpDTO signUpDTO) {
-    log.info("signup starts");
+    // log.info("signup starts");
     SignUpResponse signUpResponse = userService.saveUser(signUpDTO);
-    log.info("signup closes id: " + signUpResponse.getId());
+    // log.info("signup closes id: " + signUpResponse.getId());
     return signUpResponse;
   }
 
   @PostMapping("changepass")
   UpdatePasswordResponse changePass(@Valid @RequestBody UpdatePasswordDTO updateDTO) {
-    log.info("changePass starts");
+    // log.info("changePass starts");
     SignUpResponse signUpResponse =
             userService.changePassword(updateDTO.getNew_password());
-    log.info("changePass closes");
+    // log.info("changePass closes");
     return new UpdatePasswordResponse(signUpResponse.getEmail().toLowerCase());
   }
 

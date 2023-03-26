@@ -31,6 +31,9 @@ public class UserRoleService {
   @Autowired
   UserService userService;
 
+  @Autowired
+  EventService eventService;
+
   public SingleUserWithRoleResponse putRole(PutRoleDTO dto) {
     PutRoleDTO.RoleOperation operation = dto.getRoleOperation();
     Role role = Role.fromString(dto.getRole());
@@ -41,13 +44,18 @@ public class UserRoleService {
       else
         throw new BadRequestException("The user cannot combine administrative and business roles!");
     }
-    UserEntity userEntity = userService.getUser(dto.getUser());
+    String targetUserEmail = dto.getUser();
+    UserEntity userEntity = userService.getUser(targetUserEmail);
     if (userEntity.IsADMIN() && operation.IS_GRANT())
       throw new BadRequestException("The user cannot combine administrative and business roles!");
     if (operation.equals(PutRoleDTO.RoleOperation.REMOVE)) {
       removeUserRole(userEntity, role);
+      // @TODO REMOVE_ROLE
+      eventService.addRemoveEvent(role, targetUserEmail);
     } else {
       addUserRole(userEntity, role);
+      // @TODO GRANT_ROLE
+      eventService.addGrantEvent(role, targetUserEmail);
     }
     return SingleUserWithRoleResponse.fromUserEntity(userEntity);
   }

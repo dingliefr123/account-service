@@ -1,6 +1,7 @@
 package account.DTO;
 
 
+import account.Exception.BadRequestException;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -30,7 +31,9 @@ public class PutRoleDTO {
 
   public enum RoleOperation {
     GRANT,
-    REMOVE;
+    REMOVE,
+    LOCK,
+    UNLOCK;
 
     public boolean IS_GRANT() {
       return this.equals(GRANT);
@@ -38,13 +41,16 @@ public class PutRoleDTO {
     public boolean IS_REMOVE() {
       return this.equals(REMOVE);
     }
+    public boolean IS_LOCK() { return this.equals(LOCK); }
+    public boolean IS_UNLOCK () { return this.equals(UNLOCK); }
   }
 
   public RoleOperation getRoleOperation() {
-    if (Objects.equals(operation, RoleOperation.GRANT.name()))
-      return RoleOperation.GRANT;
-    else
-      return RoleOperation.REMOVE;
+    for(RoleOperation role : RoleOperation.values()) {
+      if (role.name().equals(operation))
+        return role;
+    }
+    throw new BadRequestException("");
   }
 
 }

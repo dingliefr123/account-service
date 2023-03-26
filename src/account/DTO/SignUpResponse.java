@@ -3,6 +3,7 @@ package account.DTO;
 import account.Entities.UserEntity;
 import account.Entities.UserRoleEntity;
 import account.Security.Role;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,6 +21,10 @@ public class SignUpResponse {
   private String email;
   private Long id;
   private List<Role> roles;
+  @JsonIgnore
+  private boolean locked;
+  @JsonIgnore
+  private int wrongInputCnt;
 
   @JsonProperty("roles")
   public List<String> formatRoles() {
@@ -40,7 +45,9 @@ public class SignUpResponse {
             userEntity.getLastname(),
             userEntity.getEmail(),
             userEntity.getId(),
-            roles);
+            roles,
+            userEntity.isLocked(),
+            userEntity.getWrongInputCnt());
   }
 
 }

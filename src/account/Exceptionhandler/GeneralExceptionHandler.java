@@ -5,6 +5,7 @@ import account.Exception.BadRequestException;
 import account.Exception.CustomForbiddenException;
 import account.Exception.UnauthorizedException;
 import account.Exception.UserNotFoundException;
+import lombok.extern.java.Log;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,7 @@ import javax.validation.ConstraintViolationException;
 import java.util.Optional;
 
 @ControllerAdvice
+@Log
 public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler({
@@ -58,15 +60,11 @@ public class GeneralExceptionHandler extends ResponseEntityExceptionHandler {
 
   @ExceptionHandler(UnauthorizedException.class)
   protected ResponseEntity<Object> handleUnauthorizedException(
-          UnauthorizedException ex,
-          HttpHeaders headers,
-          HttpStatus status,
-          WebRequest request
-  ) {
-    var path = request.getDescription(false)
-            .replace("uri=", "");
-    var body = new StandardError(status, ex.getMessage(), path, "Unauthorized");
-    return new ResponseEntity<>(body, headers, status);
+          UnauthorizedException ex) {
+    log.info("UnauthorizedException  " + ex.getMessage());
+    var status = HttpStatus.UNAUTHORIZED;
+    var body = new StandardError(status, ex.getMessage(), "Unauthorized");
+    return new ResponseEntity<>(body, status);
   }
 
   @Override

@@ -34,9 +34,15 @@ public class UserRoleEntity {
     return UserRoleEntity.builder().role(Role.ACCOUNTANT).build();
   }
 
+  public static UserRoleEntity GETAuditorRole () {
+    return UserRoleEntity.builder().role(Role.AUDITOR).build();
+  }
+
   public static UserRoleEntity FromRole(Role role) {
     if (role.equals(Role.USER))
       return GetUserRole();
+    else if (role.equals(Role.AUDITOR))
+      return GETAuditorRole();
     else
       return GetAcctRole();
   }

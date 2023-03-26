@@ -1,6 +1,7 @@
 package account.Security;
 
 import account.DTO.SignUpResponse;
+import account.Entities.UserEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,6 +11,8 @@ import java.util.Collection;
 import java.util.List;
 
 public class CustomUserDetails implements UserDetails {
+  private static final short MAX_ALLOWED_WRONG_LOGIN = 5;
+
   private final String username;
   private final String password;
   private final SignUpResponse dtoWithId;
@@ -49,7 +52,7 @@ public class CustomUserDetails implements UserDetails {
 
   @Override
   public boolean isAccountNonLocked() {
-    return true;
+    return !dtoWithId.isLocked();
   }
 
   @Override
@@ -60,5 +63,15 @@ public class CustomUserDetails implements UserDetails {
   @Override
   public boolean isEnabled() {
     return true;
+  }
+
+
+  public static boolean IsAccountNonLocked(UserEntity userEntity) {
+    return !userEntity.isLocked();
+  }
+
+  public static boolean IsBrutal(UserEntity userEntity) {
+    return !userEntity.isLocked() &&
+            userEntity.getWrongInputCnt() >= MAX_ALLOWED_WRONG_LOGIN - 1;
   }
 }

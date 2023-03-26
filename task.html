@@ -1,7 +1,108 @@
 <h5 id="description">Description</h5>
-<p>Our service is almost ready; only the roles remain. We need to add the <strong>authorization</strong>. Authorization is a process when the system decides whether an authenticated client has permission to access the requested resource. Authorization always follows authentication.</p>
-<p>Our service should implement the role model that we have developed earlier:</p>
+<p>The security department has put forward new requirements. The service must log <strong>information security events</strong>. Take a look at what they include:</p>
 <table border="1" cellpadding="1" cellspacing="1" style="width: 700px;">
+<tbody>
+<tr>
+<td>Description</td>
+<td>Event Name</td>
+</tr>
+<tr>
+<td>A user has been successfully registered</td>
+<td><code class="language-json">CREATE_USER</code></td>
+</tr>
+<tr>
+<td>A user has changed the password successfully</td>
+<td><code class="language-json">CHANGE_PASSWORD</code></td>
+</tr>
+<tr>
+<td>A user is trying to access a resource without access rights</td>
+<td><code class="language-json">ACCESS_DENIED</code></td>
+</tr>
+<tr>
+<td>Failed authentication</td>
+<td><code class="language-json">LOGIN_FAILED</code></td>
+</tr>
+<tr>
+<td>A role is granted to a user</td>
+<td><code class="language-json">GRANT_ROLE</code></td>
+</tr>
+<tr>
+<td>A role has been revoked</td>
+<td><code class="language-json">REMOVE_ROLE</code></td>
+</tr>
+<tr>
+<td>The Administrator has locked the user</td>
+<td><code class="language-json">LOCK_USER</code></td>
+</tr>
+<tr>
+<td>The Administrator has unlocked a user</td>
+<td><code class="language-json">UNLOCK_USER</code></td>
+</tr>
+<tr>
+<td>The Administrator has deleted a user</td>
+<td><code class="language-json">DELETE_USER</code></td>
+</tr>
+<tr>
+<td>A user has been blocked on suspicion of a brute force attack</td>
+<td><code class="language-json">BRUTE_FORCE</code></td>
+</tr>
+</tbody>
+</table>
+<p>The composition of the security event fields is presented below:</p>
+<pre><code class="language-json">{
+    "date": "&lt;date&gt;",
+    "action": "&lt;event_name from table&gt;",
+    "subject": "&lt;The user who performed the action&gt;",
+    "object": "&lt;The object on which the action was performed&gt;",
+    "path": "&lt;api&gt;"
+}</code></pre>
+<p>If it is impossible to determine a user, output <code class="language-json">Anonymous</code> in the <code class="language-json">subject</code> field. All examples of events are provided in the Examples.</p>
+<p>Also, you need to add the role of the <code class="language-json">auditor</code>. The auditor is an employee of the security department who analyzes information security events and identifies incidents. You need to add the appropriate endpoint for this. A user with the auditor role should be able to receive all events using the endpoint. The auditor is a part of the business group. We suggest that you implement the storage of information security events in the database, although you can choose another solution. Make sure it is persistent.</p>
+<p>Let's also discuss what a security incident is. For example, if a user made a mistake in entering a password. This is a minor user error, but numerous repeated attempts to log in with the wrong password can be evidence of a <strong>brute-force attack</strong>. In this case, it is necessary to register the incident and conduct an investigation. Information security events are collected in our service to serve as a basis for identifying incidents in the future after transmission to the <strong>Security Information and Event Management </strong>systems (SIEM).</p>
+<p>Let's implement a simple rule for detecting a brute force attack. If there are more than 5 consecutive attempts to enter an incorrect password, an entry about this should appear in the security events. Also, the user account must be blocked.</p>
+<p>To unlock a user, you will need to add a new administrative endpoint: <code class="language-json">api/admin/user/access</code>.</p>
+<p><b>Tip:</b> The following articles can help you with these tasks: <a href="https://www.baeldung.com/spring-security-block-brute-force-authentication-attempts" rel="noopener noreferrer nofollow" target="_blank">Prevent Brute Force Authentication Attempts with Spring Security</a> by Baeldung and <a href="https://www.codejava.net/frameworks/spring-boot/spring-security-limit-login-attempts-example" rel="noopener noreferrer nofollow" target="_blank">Spring Security Limit Login Attempts Example</a> by CodeJava.</p>
+<h5 id="objectives">Objectives</h5>
+<p>Implement logging security events in the application following the requirements described above.</p>
+<p>Implement a mechanism to block the user after 5 consecutive failed logins. In a case like this, the next events should be logged: <code class="language-json">LOGIN_FAILED</code> -&gt; <code class="language-json">BRUTE_FORCE</code> -&gt; <code class="language-json">LOCK_USER</code>. In case of a successful login, reset the counter of the failed attempt.</p>
+<p>Add the <code class="language-json">PUT api/admin/user/access</code> endpoint that locks/unlocks users. It accepts the following JSON body:</p>
+<pre><code class="language-json">{
+   "user": "&lt;String value, not empty&gt;",
+   "operation": "&lt;[LOCK, UNLOCK]&gt;" 
+}</code></pre>
+<p>Where <code class="language-json">operation</code> determines whether the user will be locked or unlocked. If successful, respond with the <code class="language-json">HTTP OK</code> status (<code class="language-json">200</code>) and the following body:</p>
+<pre><code class="language-json">{
+    "status": "User &lt;username&gt; &lt;[locked, unlocked]&gt;!"
+}</code></pre>
+<p>For safety reasons, the Administrator cannot be blocked. In this case, respond with the <code class="language-json">HTTP Bad Request</code> status (<code class="language-json">400</code>) and the following body:</p>
+<pre><code class="language-json">{
+    "timestamp": "&lt;date&gt;",
+    "status": 400,
+    "error": "Bad Request",
+    "message": "Can't lock the ADMINISTRATOR!",
+    "path": "&lt;api&gt;"
+}</code></pre>
+<p>For other errors, return responses like in the previous stage.</p>
+<p>Add the <code class="language-json">GET api/security/events</code> endpoint that must respond with an array of objects representing the security events of the service sorted in ascending order by ID. If no data is found, the service should return an empty JSON array.</p>
+<pre><code class="language-json">[
+    {
+        "date": "&lt;date&gt;",
+        "action": "&lt;event_name for event1&gt;",
+        "subject": "&lt;The user who performed the action&gt;",
+        "object": "&lt;The object on which the action was performed&gt;",
+        "path": "&lt;api&gt;"
+    },
+     ...
+    {
+        "date": "&lt;date&gt;",
+        "action": "&lt;event_name for eventN&gt;",
+        "subject": "&lt;The user who performed the action&gt;",
+        "object": "&lt;The object on which the action was performed&gt;",
+        "path": "&lt;api&gt;"
+    }
+]</code></pre>
+<p>Update the role model:</p>
+<table border="1" cellpadding="1" cellspacing="1" style="width: 800px;">
 <tbody>
 <tr>
 <td> </td>
@@ -9,58 +110,83 @@
 <td>User</td>
 <td>Accountant</td>
 <td>Administrator</td>
+<td>Auditor</td>
 </tr>
 <tr>
-<td><code class="language-java">POST api/auth/signup</code></td>
+<td><code class="language-json">POST api/auth/signup</code></td>
+<td>+</td>
 <td>+</td>
 <td>+</td>
 <td>+</td>
 <td>+</td>
 </tr>
 <tr>
-<td><code class="language-java">POST api/auth/changepass</code></td>
+<td><code class="language-json">POST api/auth/changepass</code></td>
 <td> </td>
 <td>+</td>
 <td>+</td>
 <td>+</td>
+<td>-</td>
 </tr>
 <tr>
-<td><code class="language-java">GET api/empl/payment</code></td>
+<td><code class="language-json">GET api/empl/payment</code></td>
 <td>-</td>
 <td>+</td>
 <td>+</td>
 <td>-</td>
+<td>-</td>
 </tr>
 <tr>
-<td><code class="language-java">POST api/acct/payments</code></td>
+<td><code class="language-json">POST api/acct/payments</code></td>
+<td>-</td>
+<td>-</td>
+<td>+</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code class="language-json">PUT api/acct/payments</code></td>
+<td>-</td>
+<td>-</td>
+<td>+</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td><code class="language-json">GET api/admin/user</code></td>
+<td>-</td>
 <td>-</td>
 <td>-</td>
 <td>+</td>
 <td>-</td>
 </tr>
 <tr>
-<td><code class="language-java">PUT api/acct/payments</code></td>
+<td><code class="language-json">DELETE api/admin/user</code></td>
+<td>-</td>
 <td>-</td>
 <td>-</td>
 <td>+</td>
 <td>-</td>
 </tr>
 <tr>
-<td><code class="language-java">GET api/admin/user</code></td>
+<td><code class="language-json">PUT api/admin/user/role</code></td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
 <td>+</td>
+<td>-</td>
 </tr>
 <tr>
-<td><code class="language-java">DELETE api/admin/user</code></td>
+<td><code class="language-json">PUT api/admin/user/access</code></td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
 <td>+</td>
+<td>-</td>
 </tr>
 <tr>
-<td><code class="language-java">PUT api/admin/user/role</code></td>
+<td><code class="language-json">GET api/security/events</code></td>
+<td>-</td>
 <td>-</td>
 <td>-</td>
 <td>-</td>
@@ -68,170 +194,92 @@
 </tr>
 </tbody>
 </table>
-<p><b>Tip:</b> You can use the article <a href="https://www.javadevjournal.com/spring-security/spring-security-roles-and-permissions/" rel="noopener noreferrer nofollow" target="_blank">Spring Security Roles and Permissions</a> by JavadevJournal and <a href="https://www.baeldung.com/spring-security-method-security" rel="noopener noreferrer nofollow" target="_blank">Introduction to Spring Method Security</a> by Baeldung to learn more about the authorization in Spring Boot.</p>
-<p>We also advise you to take a look at the following articles; they may help you a lot: <a href="https://www.baeldung.com/spring-security-custom-access-denied-page" rel="noopener noreferrer nofollow" target="_blank">Spring Security – Customize the 403 Forbidden/Access Denied Page</a> and <a href="https://www.baeldung.com/hibernate-initialize-proxy-exception" rel="noopener noreferrer nofollow" target="_blank">Hibernate could not initialize proxy – no Session</a> by Baeldung </p>
-<p><b>Tip:</b> Some hints on how to create a table with user roles at the start of the service:</p>
-<pre><code class="language-java">@Component
-public class DataLoader {
-
-    private GroupRepository groupRepository;
-
-    @Autowired
-    public DataLoader(GroupRepository groupRepository) {
-        this.groupRepository = groupRepository;
-        createRoles();
-    }
-
-    private void createRoles() {
-        try {
-            groupRepository.save(new Group("ROLE_ADMINISTRATOR"));
-            groupRepository.save(new Group("ROLE_USER"));
-            groupRepository.save(new Group("ROLE_ACCOUNTANT"));
-        } catch (Exception e) {
-
-        }
-    }
-}</code></pre>
-<p></p>
-<p>The ACME Security Department imposes the new security requirements for our service! They are based on the <a href="https://github.com/OWASP/ASVS" rel="noopener noreferrer nofollow" target="_blank">ASVS</a>. Your task is to implement the following requirements from the <strong>V4. Access Control Verification Requirements </strong>paragraph:</p>
-<ul>
-<li>Verify that all user and data attributes and policy information used by access controls cannot be manipulated by end users unless specifically authorized.</li>
-<li>Verify that the principle of least privilege exists - users should only be able to access functions, data files, URLs, controllers, services, and other resources, for which they possess specific authorization. This implies protection against spoofing and elevation of privilege. </li>
-<li>Verify that the principle of deny by default exists whereby new users/roles start with minimal or no permissions and users/roles do not receive access to new features until access is explicitly assigned. </li>
-</ul>
-<p>Let's talk about roles. The <code class="language-java">Administrator</code> is the user who registered first, all other users should receive the <code class="language-java">User</code> role. The <code class="language-java">accountant</code> role should be assigned by the Administrator to one of the users later.</p>
-<p>To assign the roles and manage users, you will need to implement the following service endpoints:</p>
-<ol>
-<li><code class="language-java">PUT api/admin/user/role</code> sets the roles;</li>
-<li><code class="language-java">DELETE api/admin/user</code> deletes users;</li>
-<li><code class="language-java">GET api/admin/user</code> obtains information about all users; the information should not be sensitive.</li>
-</ol>
-<p>The roles should be divided into 2 groups: administrative (<code class="language-java">Administrator</code>) and business users (<code class="language-java">Accountant</code>, <code class="language-java">User</code>).<br/>
-    Do not mix up the groups; a user can be either from the administrative or business group. A user with an administrative role should not have access to business functions and vice versa.</p>
-<h5 id="objectives">Objectives</h5>
-<p>Add the authorization to the service and implement the role model shown in the table above. The first registered user should receive the <code class="language-java">Administrator</code> role, the rest — <code class="language-java">Users</code>. In case of authorization violation, respond with <code class="language-java">HTTP Forbidden</code> status <code class="language-java">(403)</code> and the following body:</p>
-<pre><code class="language-json">{
-  "timestamp" : "&lt;date&gt;",
-  "status" : 403,
-  "error" : "Forbidden",
-  "message" : "Access Denied!",
-  "path" : "/api/admin/user/role"
-}</code></pre>
-<p>Change the response for the <code class="language-java">POST api/auth/signup</code> endpoint. It should respond with <code class="language-java">HTTP OK</code> status (<code class="language-java">200</code>) and the body with a JSON object with the information about a user. Add the <code class="language-java">roles</code> field that contains an array with roles, sorted in ascending order:</p>
-<pre><code class="language-json">{
-   "id": "&lt;Long value, not empty&gt;",   
-   "name": "&lt;String value, not empty&gt;",
-   "lastname": "&lt;String value, not empty&gt;",
-   "email": "&lt;String value, not empty&gt;",
-   "roles": "&lt;[User roles]&gt;"
-}</code></pre>
-<p>Add the <code class="language-java">GET api/admin/user</code> endpoint. It must respond with an array of objects representing the users sorted by ID in ascending order. Return an empty JSON array if there's no information.</p>
+<h5 id="examples">Examples</h5>
+<p><strong>Example 1: </strong><em>a </em><em>GET request for api/auth/signup under the Auditor role</em></p>
+<p><em>Response: </em><code class="language-json">200 OK</code></p>
+<p><em>Request body:</em></p>
 <pre><code class="language-json">[
-    {
-        "id": "&lt;user1 id&gt;",
-        "name": "&lt;user1 name&gt;",
-        "lastname": "&lt;user1 last name&gt;",
-        "email": "&lt;user1 email&gt;",
-        "roles": "&lt;[user1 roles]&gt;"
-    },
-     ...
-    {
-        "id": "&lt;userN id&gt;",
-        "name": "&lt;userN name&gt;",
-        "lastname": "&lt;userN last name&gt;",
-        "email": "&lt;userN email&gt;",
-        "roles": "&lt;[userN roles]&gt;"
-    }
+{
+  "id" : 1,
+  "date" : "&lt;date&gt;",
+  "action" : "CREATE_USER",
+  "subject" : "Anonymous", \\ A User is not defined, fill with Anonymous
+  "object" : "johndoe@acme.com",
+  "path" : "/api/auth/signup"
+}, {
+  "id" : 6,
+  "date" : "&lt;date&gt;",
+  "action" : "LOGIN_FAILED",
+  "subject" : "maxmustermann@acme.com",
+  "object" : "/api/empl/payment", \\ the endpoint where the event occurred
+  "path" : "/api/empl/payment"
+}, {
+  "id" : 9,
+  "date" : "&lt;date&gt;",
+  "action" : "GRANT_ROLE",
+  "subject" : "johndoe@acme.com",
+  "object" : "Grant role ACCOUNTANT to petrpetrov@acme.com",
+  "path" : "/api/admin/user/role"
+}, {
+  "id" : 10,
+  "date" : "&lt;date&gt;",
+  "action" : "REMOVE_ROLE",
+  "subject" : "johndoe@acme.com",
+  "object" : "Remove role ACCOUNTANT from petrpetrov@acme.com",
+  "path" : "/api/admin/user/role"
+}, {
+  "id" : 11,
+  "date" : "&lt;date&gt;",
+  "action" : "DELETE_USER",
+  "subject" : "johndoe@acme.com",
+  "object" : "petrpetrov@acme.com",
+  "path" : "/api/admin/user"
+}, {
+  "id" : 12,
+  "date" : "&lt;date&gt;",
+  "action" : "CHANGE_PASSWORD",
+  "subject" : "johndoe@acme.com",
+  "object" : "johndoe@acme.com",
+  "path" : "/api/auth/changepass"
+}, {
+  "id" : 16,
+  "date" : "&lt;date&gt;",
+  "action" : "ACCESS_DENIED",
+  "subject" : "johndoe@acme.com",
+  "object" : "/api/acct/payments", \\ the endpoint where the event occurred
+  "path" : "/api/acct/payments"
+}, {
+  "id" : 25,
+  "date" : "&lt;date&gt;",
+  "action" : "BRUTE_FORCE",
+  "subject" : "maxmustermann@acme.com",
+  "object" : "/api/empl/payment", \\ the endpoint where the event occurred
+  "path" : "/api/empl/payment"
+}, {
+  "id" : 26,
+  "date" : "&lt;date&gt;",
+  "action" : "LOCK_USER",
+  "subject" : "maxmustermann@acme.com",
+  "object" : "Lock user maxmustermann@acme.com",
+  "path" : "/api/empl/payment" \\ the endpoint where the lock occurred
+}, {
+  "id" : 27,
+  "date" : "&lt;date&gt;",
+  "action" : "UNLOCK_USER",
+  "subject" : "johndoe@acme.com",
+  "object" : "Unlock user maxmustermann@acme.com",
+  "path" : "/api/admin/user/access"
+}
 ]</code></pre>
-<p>Add the <code class="language-java">DELETE api/admin/user/{user email}</code> endpoint, where <code class="language-java">{user email}</code> specifies the user that should be deleted. The endpoint must delete the user and respond with <code class="language-java">HTTP OK</code> status (<code class="language-java">200</code>) and body like this:</p>
+<p><strong>Example 2: </strong><em>a </em><em>POST request for /api/admin/user/role</em></p>
+<p><em>Request body:</em></p>
 <pre><code class="language-json">{
-   "user": "&lt;user email&gt;",
-   "status": "Deleted successfully!"
+   "user": "administrator@acme.com",
+   "role": "AUDITOR",
+   "operation": "GRANT" 
 }</code></pre>
-<p>If a user is not found, respond with <code class="language-java">HTTP Not Found</code> status (<code class="language-java">404</code>) and the following body:</p>
-<pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 404,
-    "error": "Not Found",
-    "message": "User not found!",
-    "path": "&lt;api + parameter&gt;"
-}</code></pre>
-<p>The <code class="language-java">Administrator</code> should not be able to delete himself. In that case, respond with the <code class="language-java">HTTP Bad Request</code> status (<code class="language-java">400</code>) and the following body:</p>
-<pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 400,
-    "error": "Bad Request",
-    "message": "Can't remove ADMINISTRATOR role!",
-    "path": "&lt;api + path&gt;"
-}</code></pre>
-<p>Add the <code class="language-java">PUT api/admin/user/role</code> endpoint that changes user roles. It must accept the following JSON body:</p>
-<pre><code class="language-json">{
-   "user": "&lt;String value, not empty&gt;",
-   "role": "&lt;User role&gt;",
-   "operation": "&lt;[GRANT, REMOVE]&gt;"
-}</code></pre>
-<p>The <code class="language-java">operation</code> field above determines whether the role will be provided or removed. If successful, respond with the <code class="language-java">HTTP OK</code> status (<code class="language-java">200</code>) and the body like this:</p>
-<pre><code class="language-json">{
-   "id": "&lt;Long value, not empty&gt;",   
-   "name": "&lt;String value, not empty&gt;",
-   "lastname": "&lt;String value, not empty&gt;",
-   "email": "&lt;String value, not empty&gt;",
-   "roles": "[&lt;User roles&gt;]"
-}</code></pre>
-<p>In case of violation of the rules, the service must respond in the following way:</p>
-<ul>
-<li>If a user is not found, respond with the <code class="language-java">HTTP Not Found</code> status (<code class="language-java">404</code>) and the following body:</li>
-</ul>
-<pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 404,
-    "error": "Not Found",
-    "message": "User not found!",
-    "path": "/api/admin/user/role"
-}</code></pre>
-<ul>
-<li>If a role is not found, respond with <code class="language-java">HTTP Not Found</code> status (<code class="language-java">404</code>) and the following body:</li>
-</ul>
-<pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 404,
-    "error": "Not Found",
-    "message": "Role not found!",
-    "path": "/api/admin/user/role"
-}</code></pre>
-<ul>
-<li>If you want to delete a role that has not been provided to a user, respond with the <code class="language-java">HTTP Bad Request</code> status (<code class="language-java">400</code>) and body like this:</li>
-</ul>
-<pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 400,
-    "error": "Bad Request",
-    "message": "The user does not have a role!",
-    "path": "/api/admin/user/role"
-}</code></pre>
-<ul>
-<li>If you want to remove the only existing role of a user, respond with the <code class="language-java">HTTP Bad Request</code> status (<code class="language-java">400</code>) and the following body:</li>
-</ul>
-<pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 400,
-    "error": "Bad Request",
-    "message": "The user must have at least one role!",
-    "path": "/api/admin/user/role"
-}</code></pre>
-<ul>
-<li>If you try to remove the Administrator, respond with the <code class="language-java">HTTP Bad Request</code> status (<code class="language-java">400</code>) and the following body:</li>
-</ul>
-<pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 400,
-    "error": "Bad Request",
-    "message": "Can't remove ADMINISTRATOR role!",
-    "path": "/api/admin/user/role"
-}</code></pre>
-<ul>
-<li>If an administrative user is granted a business role or vice versa, respond with the <code class="language-java">HTTP Bad Request</code> status (<code class="language-java">400</code>) and the following body:</li>
-</ul>
+<p><em>Response: </em><code class="language-json">400 Bad Request</code></p>
+<p><em>Response body:</em></p>
 <pre><code class="language-json">{
     "timestamp": "&lt;date&gt;",
     "status": 400,
@@ -239,105 +287,29 @@ public class DataLoader {
     "message": "The user cannot combine administrative and business roles!",
     "path": "/api/admin/user/role"
 }</code></pre>
-<h5 id="examples">Examples</h5>
-<p><strong>Example 1: </strong><em>a </em><em>PUT request for /api/admin/user/role with the correct authentication under the Administrator role</em></p>
-<p><em>Request:</em></p>
+<p><strong>Example 3: </strong><em>a </em><em>PUT request for PUT api/admin/user/access</em></p>
+<p><em>Request body:</em></p>
 <pre><code class="language-json">{
-   "user": "ivanivanov@acme.com",
-   "role": "ACCOUNTANT",
-   "operation": "GRANT"
+   "user": "administrator@acme.com",
+   "operation": "LOCK" 
 }</code></pre>
-<p><em>Response: </em><code class="language-java">200 OK</code></p>
-<p><em>Response body:</em></p>
-<pre><code class="language-json">{
-    "id": 2,
-    "name": "Ivan",
-    "lastname": "Ivanov",
-    "email": "ivanivanov@acme.com",
-    "roles": [
-        "ROLE_ACCOUNTANT",
-        "ROLE_USER"
-    ]
-}</code></pre>
-<p><strong>Example 2: </strong><em>a </em><em>GET request for /api/empl/payment with the correct authentication under the Administrator role</em></p>
-<p><em>Response: </em><code class="language-java">200 OK</code></p>
-<p><em>Response body:</em></p>
-<pre><code class="language-json">[
-    {
-        "id": 1,
-        "name": "John",
-        "lastname": "Doe",
-        "email": "johndoe@acme.com",
-        "roles": [
-            "ROLE_ADMINISTRATOR"
-        ]
-    },
-    {
-        "id": 2,
-        "name": "Ivan",
-        "lastname": "Ivanov",
-        "email": "ivanivanov@acme.com",
-        "roles": [
-            "ROLE_ACCOUNTANT",
-            "ROLE_USER"
-        ]
-    }
-]</code></pre>
-<p><strong>Example 3: </strong><em>a PUT request for /api/admin/user/role with the correct authentication under the Administrator role</em></p>
-<p><em>Request:</em></p>
-<pre><code class="language-json">{
-   "user": "ivanivanov@acme.com",
-   "role": "ACCOUNTANT",
-   "operation": "REMOVE"
-}</code></pre>
-<p><em>Response: </em><code class="language-java">200 OK</code></p>
-<p><em>Response body:</em></p>
-<pre><code class="language-json">{
-    "id": 2,
-    "name": "Ivan",
-    "lastname": "Ivanov",
-    "email": "ivanivanov@acme.com",
-    "roles": [
-        "ROLE_USER"
-    ]
-}</code></pre>
-<p><br/>
-<strong>Example 4: </strong><em>a </em><em>GET request for /api/admin/user/role with the correct authentication under the User role</em></p>
-<p><em>Response: </em><code class="language-java">403 Forbidden</code></p>
-<p><em>Response body:</em></p>
-<pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 403,
-    "error": "Forbidden",
-    "message": "Access Denied!",
-    "path": "/api/admin/user/"
-}</code></pre>
-<p><br/>
-<strong>Example 5: </strong><em>a </em><em>DELETE request for /api/admin/user/ivanivanov@acme.com with the correct authentication under the Administrator role</em></p>
-<p><em>Response: </em><code class="language-java">200 OK</code></p>
-<p><em>Response body:</em></p>
-<pre><code class="language-json">{
-    "user": "ivanivanov@acme.com",
-    "status": "Deleted successfully!"
-}</code></pre>
-<p><br/>
-<strong>Example 6: </strong><em>a </em><em>DELETE request for /api/admin/user/johndoe@acme.com with the correct authentication under the Administrator role</em></p>
-<p><em>Response: </em><code class="language-java">400 Bad Request</code></p>
+<p><em>Response: </em><code class="language-json">400 Bad Request</code></p>
 <p><em>Response body:</em></p>
 <pre><code class="language-json">{
     "timestamp": "&lt;date&gt;",
     "status": 400,
     "error": "Bad Request",
-    "message": "Can't remove ADMINISTRATOR role!",
-    "path": "/api/admin/user/johndoe@acme.com"
+    "message": "Can't lock the ADMINISTRATOR!",
+    "path": "/api/admin/user/access"
 }</code></pre>
-<p><strong>Example 7: </strong><em>a </em><em>DELETE request for /api/admin/user/ivanivanov@acme.com with the correct authentication under the Administrator role</em></p>
-<p><em>Response: </em><code class="language-java">404 Not Found</code></p>
+<p><strong> Example 4: </strong><em>a </em><em>PUT request for PUT api/admin/user/access</em></p>
+<p><em>Request body:</em></p>
+<pre><code class="language-json">{
+   "user": "user@acme.com",
+   "operation": "LOCK" 
+}</code></pre>
+<p><em>Response: </em><code class="language-json">200 OK</code></p>
 <p><em>Response body:</em></p>
 <pre><code class="language-json">{
-    "timestamp": "&lt;date&gt;",
-    "status": 404,
-    "error": "Not Found",
-    "message": "User not found!",
-    "path": "/api/admin/user/ivanivanov@acme.com"
+    "status": "User user@acme.com locked!"
 }</code></pre>
